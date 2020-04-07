@@ -14,7 +14,7 @@ const init = () => {
   camera.position.x = 3
 
   controls = new THREE.OrbitControls(camera, document.getElementById("viewport"))
-  axis = new THREE.AxisHelper(300)
+  axis = new THREE.AxisHelper(simSize * 1.1)
   scene.add(axis)
 
   var gridHelper = new THREE.GridHelper( simSize * 2.2, 20 );
