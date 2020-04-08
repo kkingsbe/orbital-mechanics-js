@@ -89,7 +89,7 @@ function getTrail() {
   geometry.setDrawRange( 0, drawCount );
 
   // material
-  var material = new THREE.LineBasicMaterial( { color: 0xffffff } );
+  var material = new THREE.LineBasicMaterial( { color: 0x00ffff } );
 
   // line
   line = new THREE.Line( geometry,  material );

@@ -9,9 +9,9 @@ var MAX_POINTS = 50000; //The maximum length of the trails
 const init = () => {
   scene = new THREE.Scene()
   camera = new THREE.PerspectiveCamera(45, ratio, 1, 1000)
-  camera.position.z = 7
-  camera.position.y = 7
-  camera.position.x = 3
+  camera.position.z = 30
+  camera.position.y = 50
+  camera.position.x = 80
 
   controls = new THREE.OrbitControls(camera, document.getElementById("viewport"))
   axis = new THREE.AxisHelper(simSize * 1.1)
@@ -73,7 +73,7 @@ function getTrail() {
   geometry.setDrawRange( 0, drawCount );
 
   // material
-  var material = new THREE.LineBasicMaterial( { color: 0xffffff } );
+  var material = new THREE.LineBasicMaterial( { color: 0x00ffff } );
 
   // line
   line = new THREE.Line( geometry,  material );
