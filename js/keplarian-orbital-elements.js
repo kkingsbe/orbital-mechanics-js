@@ -5,13 +5,14 @@ const ratio = width / height
 const simSize = 100
 var tstep = 0 //the current index in the data array
 var MAX_POINTS = 50000; //The maximum length of the trails
+var bodies = []
 
 const init = () => {
   scene = new THREE.Scene()
   camera = new THREE.PerspectiveCamera(45, ratio, 1, 1000)
-  camera.position.z = 7
-  camera.position.y = 7
-  camera.position.x = 3
+  camera.position.z = 30
+  camera.position.y = 50
+  camera.position.x = 80
 
   controls = new THREE.OrbitControls(camera, document.getElementById("viewport"))
   axis = new THREE.AxisHelper(simSize * 1.1)
@@ -45,6 +46,21 @@ const getPointLight = (color, intensity, distance) => {
   let light = new THREE.PointLight(color, intensity, distance)
   return light
 }
+
+function getOrbitingBody(name) {
+  let mesh = getSphere(0.5, 0xffffff)
+  scene.add(mesh)
+
+  let trail = getTrail()
+  scene.add(trail)
+
+  return {
+    mesh: mesh,
+    trail: trail
+  }
+}
+
+
 
 function getSphere(radius, color, cb=false) {
   var geometry = new THREE.SphereGeometry( radius, 32, 16 )
@@ -82,9 +98,9 @@ function getTrail() {
 
 init()
 
-function parseData() {
+function parseData(varName) {
   let data = []
-  let lines = TwoBody.split("\n")
+  let lines = varName.split("\n")
   for(let i = 1; i < lines.length; i++) {
     let line = lines[i]
     let points = line.split(",")
@@ -127,43 +143,63 @@ function scaleData(data, scaleFactor) {
   return scaledData
 }
 
-function updateTrail(line) {
-  var positions = line.geometry.attributes.position.array;
+function updateTrail(line, scaledData) {
+  let positions = line.geometry.attributes.position.array;
   let index = 0
   for ( var i = 0; i < tstep; i ++ ) {
       positions[ index++ ] = scaledData[i].rx;
-      positions[ index++ ] = scaledData[i].ry;
       positions[ index++ ] = scaledData[i].rz;
+      positions[ index++ ] = scaledData[i].ry;
   }
-  line.geometry.setDrawRange( 1, tstep );
+  line.geometry.setDrawRange( 0, tstep );
   line.geometry.attributes.position.needsUpdate = true
 }
 
-function animate(scaledData, cb, ob, obTrail) {
+function animate(scaledData, ob) {
   let state = scaledData[tstep]
-  ob.position.x = state.rx
-  ob.position.y = state.ry
-  ob.position.z = state.rz
+  ob.mesh.position.x = state.rx
+  ob.mesh.position.z = state.ry
+  ob.mesh.position.y = state.rz
 
-  updateTrail(obTrail)
+  updateTrail(ob.trail, scaledData)
+
   tstep ++
   if(tstep > scaledData.length-1) tstep = 0
 }
 
-let data = parseData()
-let maxR = getMaxR(data)
-let scaleFactor = simSize / maxR
-let scaledData = scaleData(data, scaleFactor)
-let cb = getSphere(695700*scaleFactor, 0x0000ff, true)
+let issData = parseData(iss)
+let issMaxR = getMaxR(issData)
+
+let geoData = parseData(geo)
+let geoMaxR = getMaxR(geoData)
+
+let randomData = parseData(random)
+let randomMaxR = getMaxR(randomData)
+
+let scaleFactor = simSize/Math.max(issMaxR,geoMaxR,randomMaxR)
+
+let scaledIssData = scaleData(issData, scaleFactor)
+let scaledGeoData = scaleData(geoData, scaleFactor)
+let scaledRandomData = scaleData(randomData, scaleFactor)
+
+
+let cb = getSphere(6378*scaleFactor, 0x0000ff, true)
 scene.add( cb );
 
-let ob = getSphere(0.5, 0xffffff)
-scene.add(ob)
-
-let trail = getTrail()
-scene.add(trail)
-
-var light = new THREE.AmbientLight(0x404040)
+var light = new THREE.AmbientLight(0x404040, 10)
 scene.add(light)
 
-setInterval(function(){animate(scaledData, cb, ob, trail)}, 500 * 1/60)
+
+let issMesh = getOrbitingBody("ISS")
+let GEOMesh = getOrbitingBody("GEO")
+let randomMesh = getOrbitingBody("Random")
+
+bodies.push(issMesh)
+bodies.push(GEOMesh)
+bodies.push(randomMesh)
+
+setInterval(function(){
+  animate(scaledIssData, issMesh, cb)
+  animate(scaledGeoData, GEOMesh, cb)
+  animate(scaledRandomData, randomMesh, cb)
+}, 1000 * 1/60)

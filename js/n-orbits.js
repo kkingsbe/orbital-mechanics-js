@@ -82,9 +82,9 @@ function getTrail() {
 
 init()
 
-function parseData() {
+function parseData(varName) {
   let data = []
-  let lines = TwoBody.split("\n")
+  let lines = varName.split("\n")
   for(let i = 1; i < lines.length; i++) {
     let line = lines[i]
     let points = line.split(",")
@@ -127,43 +127,59 @@ function scaleData(data, scaleFactor) {
   return scaledData
 }
 
-function updateTrail(line) {
-  var positions = line.geometry.attributes.position.array;
+function updateTrail(line, scaledData) {
+  let positions = line.geometry.attributes.position.array;
   let index = 0
   for ( var i = 0; i < tstep; i ++ ) {
       positions[ index++ ] = scaledData[i].rx;
-      positions[ index++ ] = scaledData[i].ry;
       positions[ index++ ] = scaledData[i].rz;
+      positions[ index++ ] = scaledData[i].ry;
   }
-  line.geometry.setDrawRange( 1, tstep );
+  line.geometry.setDrawRange( 0, tstep );
   line.geometry.attributes.position.needsUpdate = true
 }
 
 function animate(scaledData, cb, ob, obTrail) {
   let state = scaledData[tstep]
   ob.position.x = state.rx
-  ob.position.y = state.ry
-  ob.position.z = state.rz
+  ob.position.z = state.ry
+  ob.position.y = state.rz
 
-  updateTrail(obTrail)
+  updateTrail(obTrail, scaledData)
   tstep ++
   if(tstep > scaledData.length-1) tstep = 0
 }
 
-let data = parseData()
-let maxR = getMaxR(data)
-let scaleFactor = simSize / maxR
-let scaledData = scaleData(data, scaleFactor)
-let cb = getSphere(695700*scaleFactor, 0x0000ff, true)
+let body1Data = parseData(body1)
+let body1MaxR = getMaxR(body1Data)
+
+let body2Data = parseData(body2)
+let body2MaxR = getMaxR(body2Data)
+
+let scaleFactor = body1MaxR > body2MaxR ? simSize/body1MaxR : simSize/body2MaxR
+
+let scaledBody1Data = scaleData(body1Data, scaleFactor)
+let scaledBody2Data = scaleData(body2Data, scaleFactor)
+
+let cb = getSphere(6378*scaleFactor, 0x0000ff, true)
 scene.add( cb );
 
-let ob = getSphere(0.5, 0xffffff)
-scene.add(ob)
+let body1Mesh = getSphere(0.5, 0xffffff)
+scene.add(body1Mesh)
 
-let trail = getTrail()
-scene.add(trail)
+let body2Mesh = getSphere(0.5, 0xffffff)
+scene.add(body2Mesh)
+
+let trail1 = getTrail()
+scene.add(trail1)
+
+let trail2 = getTrail()
+scene.add(trail2)
 
 var light = new THREE.AmbientLight(0x404040)
 scene.add(light)
 
-setInterval(function(){animate(scaledData, cb, ob, trail)}, 500 * 1/60)
+setInterval(function(){
+  animate(scaledBody1Data, cb, body1Mesh, trail1)
+  animate(scaledBody2Data, cb, body2Mesh, trail2)
+}, 1000 * 1/60)
