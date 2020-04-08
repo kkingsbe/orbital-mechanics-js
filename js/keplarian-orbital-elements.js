@@ -47,20 +47,36 @@ const getPointLight = (color, intensity, distance) => {
   return light
 }
 
-function getOrbitingBody(name) {
+function getOrbitingBody(name, data) {
   let mesh = getSphere(0.5, 0xffffff)
   scene.add(mesh)
 
   let trail = getTrail()
   scene.add(trail)
 
+  let label = getLabel(name)
+  let currentPos = mesh.position.project(camera)
+
+  let x = (currentPos.x + 1) * width / 2
+  let y = - (currentPos.y - 1) * height / 2
+  label.style.top = y+'px'
+  label.style.left = x+'px'
+
   return {
     mesh: mesh,
-    trail: trail
+    trail: trail,
+    label: label,
+    data: data
   }
 }
 
-
+function getLabel(text) {
+  let div = document.createElement("div")
+  div.className = "label"
+  div.innerHTML = text
+  document.getElementById("viewport").appendChild(div)
+  return div
+}
 
 function getSphere(radius, color, cb=false) {
   var geometry = new THREE.SphereGeometry( radius, 32, 16 )
@@ -155,16 +171,33 @@ function updateTrail(line, scaledData) {
   line.geometry.attributes.position.needsUpdate = true
 }
 
-function animate(scaledData, ob) {
-  let state = scaledData[tstep]
-  ob.mesh.position.x = state.rx
-  ob.mesh.position.z = state.ry
-  ob.mesh.position.y = state.rz
+function updateLabel(object) {
+  let mesh = object.mesh
+  let label = object.label
 
-  updateTrail(ob.trail, scaledData)
+  let currentPos = mesh.position.clone().project(camera)
+  let x = (currentPos.x + 1) * width / 2
+  if(x > width - 20) x = width-35
+  if(x < 0) x = 5
+  let y = - (currentPos.y - 1) * height / 2
+  if(y > height - 20) y = height-20
+  if(y < 0) y = 20
+  label.style.top = y+'px'
+  label.style.left = x+'px'
+}
 
+function animate() {
+  bodies.forEach(body => {
+    let state = body.data[tstep]
+    body.mesh.position.x = state.rx
+    body.mesh.position.z = state.ry
+    body.mesh.position.y = state.rz
+  
+    updateTrail(body.trail, body.data)
+    updateLabel(body)
+  })
   tstep ++
-  if(tstep > scaledData.length-1) tstep = 0
+  if(tstep > bodies[0].data.length-1) tstep = 0
 }
 
 let issData = parseData(iss)
@@ -190,16 +223,14 @@ var light = new THREE.AmbientLight(0x404040, 10)
 scene.add(light)
 
 
-let issMesh = getOrbitingBody("ISS")
-let GEOMesh = getOrbitingBody("GEO")
-let randomMesh = getOrbitingBody("Random")
+let issMesh = getOrbitingBody("ISS", scaledIssData)
+let GEOMesh = getOrbitingBody("GEO", scaledGeoData)
+let randomMesh = getOrbitingBody("Random", scaledRandomData)
 
 bodies.push(issMesh)
 bodies.push(GEOMesh)
 bodies.push(randomMesh)
 
 setInterval(function(){
-  animate(scaledIssData, issMesh, cb)
-  animate(scaledGeoData, GEOMesh, cb)
-  animate(scaledRandomData, randomMesh, cb)
+  animate()
 }, 1000 * 1/60)
